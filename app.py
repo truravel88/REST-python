@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_restful import abort, Api, Resource
 import sys,os,time
-import sqlobject
+import sqlobject,json
 import md5 # inseguro pero es un ejemplo demostrativo. 
 #from myapp.Contact import Contact
 
@@ -32,6 +32,7 @@ def get_elements(data):
 
 class UserObj(sqlobject.SQLObject):
 	name = sqlobject.StringCol(length=40, unique=True)
+	contact = sqlobject.MultipleJoin('ContactObj', joinColumn='user')
 
 class TokenObj(sqlobject.SQLObject):
 	token = sqlobject.StringCol(length=256, unique=True)
@@ -39,7 +40,7 @@ class TokenObj(sqlobject.SQLObject):
 class ContactObj(sqlobject.SQLObject):
 	data = sqlobject.StringCol(length=256, unique=True)
 	datatype = sqlobject.StringCol(length=60, unique=True)
-	user = sqlobject.IntCol()
+	user = sqlobject.ForeignKey('UserObj')
 
 
 class User(Resource):
@@ -73,7 +74,7 @@ class User(Resource):
 					try:
 						user = UserObj.get(args['id'])
 					except Exception as e:
-						return {'Error':'Not Found'}, 404
+						return {'Error':'User Not Found'}, 404
 					user.set(name=args['name'])
 					user = UserObj.get(args['id'])
 				return {'id': user.name}, 201
@@ -134,24 +135,45 @@ class Token(Resource):
 
 class Contact(Resource):
 
-	def get(self,data):
+	def put(self,data):
 		return data
 
-	def put(self,data):
+
+	def delete(self,data):
+		return data
+
+
+	def get(self,data):
 		args = get_elements(data)
 		if IsValid(args['token']):
 			if args['user'] is not None:
-				query = UserObj.q.id==args['user']
-				if UserObj.select(query).count() != 0:
-					user = UserObj.select(query)[0]
-				else:
-					return  {'Error':args['user']}, 404
-			if args['data'] is not None and args['datatype'] is not None and user.id > 0:
-				ContactObj(data=args['data'],user=user.id,datatype=args['datatype']), 201
-			return {'id': 'Hello world'},
+				try:
+					user = UserObj.get(args['user'])
+				except Exception as e:
+					return {'Error':'User Not Found'}, 404
+			ret = dict()
+			contact = ContactObj.select(ContactObj.q.user==user)
+			for i in xrange(0,contact.count()):
+				ret[i] = {'id':contact[i].id,'data': contact[i].data ,'datatype': contact[i].datatype }
+			return json.dumps(ret), 200
 		else:
 			return {'Error':'Invalid Token'}, 401
-		return json
+
+
+	def post(self,data):
+		args = get_elements(data)
+		if IsValid(args['token']):
+			if args['user'] is not None:
+				try:
+					user = UserObj.get(args['user'])
+				except Exception as e:
+					return {'Error':'User Not Found'}, 404
+			if args['data'] != '' and args['datatype'] != '':
+				contact = ContactObj(data=args['data'],user=user,datatype=args['datatype'])
+			return {'id': contact.id , 'user': user.name}, 201
+		else:
+			return {'Error':'Invalid Token'}, 401
+
 
 
 
