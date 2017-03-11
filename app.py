@@ -39,7 +39,7 @@ class TokenObj(sqlobject.SQLObject):
 
 class ContactObj(sqlobject.SQLObject):
 	data = sqlobject.StringCol(length=256, unique=True)
-	datatype = sqlobject.StringCol(length=60, unique=True)
+	datatype = sqlobject.StringCol(length=60)
 	user = sqlobject.ForeignKey('UserObj')
 
 
@@ -136,43 +136,86 @@ class Token(Resource):
 class Contact(Resource):
 
 	def put(self,data):
-		return data
+		try:
+			args = get_elements(data)
+			if IsValid(args['token']):
+				if args['data'] != '' and args['id'] != '' and args['datatype'] != '':
+					try:
+						contact = ContactObj.get(args['id'])
+					except Exception as e:
+						return {'Error':'Contact Not Found'}, 404
+					try:
+						user = UserObj.get(args['user'])
+					except Exception as e:
+						return {'Error':'User Not Found'}, 404
+					contact.set(data=args['data'])
+					contact.set(datatype=args['datatype'])
+					contact = ContactObj.get(args['id'])
+				return {'id': contact.id, 'data': contact.data, 'datatype': contact.datatype}, 200
+			else:
+				return {'Error':'Invalid Token'}, 401
+		except Exception as e:
+			return {'Error':'Bad Request'}, 400
 
 
 	def delete(self,data):
-		return data
+		try:
+			args = get_elements(data)
+			if IsValid(args['token']):
+				if args['id'] != '':
+					try:
+						contact = ContactObj.get(args['id'])
+						contact.delete(1)
+					except Exception as e:
+						return {'Error':'Bad Request'}, 400
+
+				return {'message': 'Done'}, 200
+			else:
+				return {'Error':'Invalid Token'}, 401
+		except Exception as e:
+			return {'Error':'Bad Request'}, 400
+
+
 
 
 	def get(self,data):
-		args = get_elements(data)
-		if IsValid(args['token']):
-			if args['user'] is not None:
-				try:
-					user = UserObj.get(args['user'])
-				except Exception as e:
-					return {'Error':'User Not Found'}, 404
-			ret = dict()
-			contact = ContactObj.select(ContactObj.q.user==user)
-			for i in xrange(0,contact.count()):
-				ret[i] = {'id':contact[i].id,'data': contact[i].data ,'datatype': contact[i].datatype }
-			return json.dumps(ret), 200
-		else:
-			return {'Error':'Invalid Token'}, 401
+		try:
+			args = get_elements(data)
+			if IsValid(args['token']):
+				if args['user'] is not None:
+					try:
+						user = UserObj.get(args['user'])
+					except Exception as e:
+						return {'Error':'User Not Found'}, 404
+				ret = dict()
+				contact = ContactObj.select(ContactObj.q.user==user)
+				for i in xrange(0,contact.count()):
+					ret[i] = {'id':contact[i].id,'data': contact[i].data ,'datatype': contact[i].datatype }
+				return json.dumps(ret), 200
+			else:
+				return {'Error':'Invalid Token'}, 401
+		except Exception as e:
+			return {'Error':'Bad Request'}, 400
+
 
 
 	def post(self,data):
-		args = get_elements(data)
-		if IsValid(args['token']):
-			if args['user'] is not None:
-				try:
-					user = UserObj.get(args['user'])
-				except Exception as e:
-					return {'Error':'User Not Found'}, 404
-			if args['data'] != '' and args['datatype'] != '':
-				contact = ContactObj(data=args['data'],user=user,datatype=args['datatype'])
-			return {'id': contact.id , 'user': user.name}, 201
-		else:
-			return {'Error':'Invalid Token'}, 401
+		try:
+			args = get_elements(data)
+			if IsValid(args['token']):
+				if args['user'] is not None:
+					try:
+						user = UserObj.get(args['user'])
+					except Exception as e:
+						return {'Error':'User Not Found'}, 404
+				if args['data'] != '' and args['datatype'] != '':
+					contact = ContactObj(data=args['data'],user=user,datatype=args['datatype'])
+				return {'id': contact.id , 'user': user.name}, 201
+			else:
+				return {'Error':'Invalid Token'}, 401
+		except Exception as e:
+			return {'Error':'Bad Request'}, 400
+
 
 
 
