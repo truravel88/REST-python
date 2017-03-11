@@ -91,13 +91,14 @@ class User(Resource):
 			if IsValid(args['token']):
 				if args['name'] is not None:
 					query = UserObj.q.name==args['name']
-					UserObj.select(query)
-					UserObj.delete(1)
+					user = UserObj.select(query)
+					UserObj.delete(user.id)
 				return {'message': 'Done'},
 			else:
 				return {'Error':'Invalid Token'}, 401
 		except Exception as e:
 			return {'Error':'Bad Request'}, 400
+
 
 
 	def post(self,data):
@@ -165,7 +166,7 @@ class Contact(Resource):
 				if args['id'] != '':
 					try:
 						contact = ContactObj.get(args['id'])
-						contact.delete(1)
+						ContactObj.delete(contact.id)
 					except Exception as e:
 						return {'Error':'Bad Request'}, 400
 
