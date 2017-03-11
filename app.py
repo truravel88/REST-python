@@ -65,12 +65,18 @@ class User(Resource):
 			return {'Error':'Bad Request'}, 400
 
 
-	def post(self,data):
+	def put(self,data):
 		try:
 			args = get_elements(data)
 			if IsValid(args['token']):
-				#
-				return {'id': 'Hello world'}, 201
+				if args['name'] is not None and args['id'] is not None:
+					try:
+						user = UserObj.get(args['id'])
+					except Exception as e:
+						return {'Error':'Not Found'}, 404
+					user.set(name=args['name'])
+					user = UserObj.get(args['id'])
+				return {'id': user.name}, 201
 			else:
 				return {'Error':'Invalid Token'}, 401
 		except Exception as e:
@@ -93,7 +99,7 @@ class User(Resource):
 			return {'Error':'Bad Request'}, 400
 
 
-	def put(self,data):
+	def post(self,data):
 		try:
 			args = get_elements(data)
 			if IsValid(args['token']):
