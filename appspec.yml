@@ -1,0 +1,13 @@
+version: 0.1
+os: linux
+files:
+  - source: /
+    destination: /home/ubuntu
+
+hooks:
+  BeforeInstall:
+    - location: AWScripts/StopWorker.sh
+  ApplicationStart:
+    - location: AWScripts/StartWorker.sh
+      timeout: 300
+
